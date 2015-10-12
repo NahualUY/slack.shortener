@@ -6,7 +6,17 @@ import requests
 import json
 import validators
 import re
+import logging
 app = Flask(__name__)
+
+if 'log_path' in settings and settings['log_path']:
+    handler = logging.handlers.RotatingFileHandler(settings['log_path'])
+    handler.setLevel(logging.ERROR)
+    handler.setFormatter(logging.Formatter(
+        '%(asctime)s %(levelname)s: %(message)s '
+        '[in %(pathname)s:%(lineno)d]'
+    ))
+    app.logger.addHandler(handler)
 
 
 @app.route("/commands", methods=['POST'])
