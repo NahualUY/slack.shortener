@@ -14,10 +14,24 @@ def execute_command():
     if request.form['token'] not in settings['slack']['command_tokens']:
         return 'Error'
 
-    if request.form['command'] == '/url':
-        text = re.sub(' +', ' ', request.form['text'].strip())
-        parts = text.split(' ')
+    text = re.sub(' +', ' ', request.form['text'].strip())
+    parts = text.split(' ')
+    if parts[0] == 'help':
+        return (u'`/url`\n>Muestra todas las urls creadas\n\n'
+                u'`/url [url-corta] [url-real]`\n'
+                u'>Crea un link desde {base_url}/url-corta a url_real y *avisa en el canal que el link fué creado*\n>\n'
+                u'>*Ejemplo*: `/url facebook https://www.facebook.com/groups/NahualUY201508` Hace que <{base_url}/facebook> redirija a https://www.facebook.com/groups/NahualUY201508\n\n'
+                u'`/url [url-corta]`\n'
+                u'>Muestra a qué url apunta {base_url}/url-corta y quién lo creó\n>\n'
+                u'>*Ejemplo*: `/url facebook` muestra\n>_{base_url}/facebook apunta a https://www.facebook.com/groups/NahualUY201508 (creado por @gmc)_\n\n'
+                u'`/url @[alguien]`\n'
+                u'>Muestra todas las urls creadas por @alguien\n\n'
+                u'`/url.del [url-corta]`\n'
+                u'>Borra la url {base_url}/url-corta\n>\n'
+                u'>*Importante:* Sólo quien creó la url la puede borrar o un administrador de Slack').format(
+            base_url=settings['redirect_domain'])
 
+    if request.form['command'] == '/url':
         previous_url = None
         try:
             previous_url = models.Url.get(models.Url.name == parts[0])
