@@ -7,6 +7,7 @@ import json
 import validators
 import re
 import logging
+from utils import get_short_link
 app = Flask(__name__)
 
 if 'log_path' in settings and settings['log_path']:
@@ -29,17 +30,19 @@ def execute_command():
     if parts[0] == 'help':
         return (u'`/url`\n>Muestra todas las urls creadas\n\n'
                 u'`/url [url-corta] [url-real]`\n'
-                u'>Crea un link desde {base_url}/url-corta a url_real y *avisa en el canal que el link fué creado*\n>\n'
-                u'>*Ejemplo*: `/url facebook https://www.facebook.com/groups/NahualUY201508` Hace que <{base_url}/facebook> redirija a https://www.facebook.com/groups/NahualUY201508\n\n'
+                u'>Crea un link desde {url_corta_url} a url_real y *avisa en el canal que el link fué creado*\n>\n'
+                u'>*Ejemplo*: `/url facebook https://www.facebook.com/groups/NahualUY201508` Hace que {facebook_url} redirija a https://www.facebook.com/groups/NahualUY201508\n\n'
                 u'`/url [url-corta]`\n'
-                u'>Muestra a qué url apunta {base_url}/url-corta y quién lo creó\n>\n'
-                u'>*Ejemplo*: `/url facebook` muestra\n>_{base_url}/facebook apunta a https://www.facebook.com/groups/NahualUY201508 (creado por @gmc)_\n\n'
+                u'>Muestra a qué url apunta {url_corta_url} y quién lo creó\n>\n'
+                u'>*Ejemplo*: `/url facebook` muestra\n>_{facebook_url} apunta a https://www.facebook.com/groups/NahualUY201508 (creado por @gmc)_\n\n'
                 u'`/url @[alguien]`\n'
                 u'>Muestra todas las urls creadas por @alguien\n\n'
                 u'`/url.del [url-corta]`\n'
-                u'>Borra la url {base_url}/url-corta\n>\n'
+                u'>Borra la url {url_corta_url}\n>\n'
                 u'>*Importante:* Sólo quien creó la url la puede borrar o un administrador de Slack').format(
-            base_url=settings['redirect_domain'])
+            facebook_url=get_short_link('facebook'),
+            url_corta_url=get_short_link('url-corta'),
+        )
 
     if request.form['command'] == '/url':
         previous_url = None
@@ -51,7 +54,7 @@ def execute_command():
         if len(parts) == 1 and not parts[0]:
             urls = sorted(list(models.Url.select()), key=lambda u: u.created_by_id)
             if len(urls):
-                return '*Urls creadas*\n%s' % '\n'.join(['<%s/%s> -> <%s> (creada por <@%s>)' % (settings['redirect_domain'], u.name, u.dest_url, u.created_by_id) for u in urls])
+                return '*Urls creadas*\n%s' % '\n'.join(['%s -> <%s> (creada por <@%s>)' % (get_short_link(u.name), u.dest_url, u.created_by_id) for u in urls])
             else:
                 return 'No hay urls'
 
@@ -68,17 +71,17 @@ def execute_command():
 
                 urls = list(models.Url.select().where(models.Url.created_by_id == user_id))
                 if len(urls):
-                    return '*Urls creadas por <@%s>:*\n%s' % (user_id, '\n'.join(['<%s/%s> -> <%s>' % (settings['redirect_domain'], u.name, u.dest_url) for u in urls]))
+                    return '*Urls creadas por <@%s>:*\n%s' % (user_id, '\n'.join(['%s -> <%s>' % (get_short_link(u.name), u.dest_url) for u in urls]))
                 else:
                     return 'No hay urls creadas por <@%s>' % user_id
 
             elif previous_url:
-                return '<%s/%s> apunta a <%s> (creado por <@%s>)' % (settings['redirect_domain'], previous_url.name, previous_url.dest_url, previous_url.created_by_id)
+                return '%s apunta a <%s> (creado por <@%s>)' % (get_short_link(previous_url.name), previous_url.dest_url, previous_url.created_by_id)
             else:
-                return 'No hay un link definido para <%s/%s>' % (settings['redirect_domain'], parts[0])
+                return 'No hay un link definido para %s' % get_short_link(parts[0])
 
         if len(parts) != 2:
-            return '*Error*\nSe debe usar `/url [url-corta] [url-real]`.\nPara crear un link desde %s/web a http://nahual.uy se debe usar `/url web http://nahual.uy`' % settings['redirect_domain']
+            return '*Error*\nSe debe usar `/url [url-corta] [url-real]`.\nPara crear un link desde %s a http://nahual.uy se debe usar `/url web http://nahual.uy`' % get_short_link('web')
 
         if not validators.url(parts[1]):
             parts[1] = 'http://%s' % parts[1]
@@ -89,13 +92,13 @@ def execute_command():
             return u'El primer parámetro no tiene que ser una url, sólo la parte después de %s/' % settings['redirect_domain']
 
         if previous_url:
-            return u'*Error*\nYa existe un link <%s/%s> creado por <@%s>. Apunta a <%s>. Sólo <@%s> o un administrador lo puede borrar usando `/url.del`' % (settings['redirect_domain'], parts[0], previous_url.created_by_id, previous_url.dest_url, previous_url.created_by_id)
+            return u'*Error*\nYa existe un link %s creado por <@%s>. Apunta a <%s>. Sólo <@%s> o un administrador lo puede borrar usando `/url.del`' % (get_short_link(parts[0]), previous_url.created_by_id, previous_url.dest_url, previous_url.created_by_id)
 
         new = models.Url(name=parts[0], dest_url=parts[1], created_by_id=request.form['user_id'], created_by_username=request.form['user_name'])
         new.save()
 
         data = {
-            'text': u'<@%s> creó el link <%s/%s> que apunta a <%s>' % (new.created_by_id, settings['redirect_domain'], new.name, new.dest_url),
+            'text': u'<@%s> creó el link %s que apunta a <%s>' % (new.created_by_id, get_short_link(new.name), new.dest_url),
             'channel': '#%s' % request.form['channel_name'],
             'username': settings['slack']['incoming_webhook']['username'],
             'icon_url': settings['slack']['incoming_webhook']['icon_url']
@@ -121,7 +124,7 @@ def execute_command():
             url.delete_instance()
             return 'Link borrado!'
         else:
-            return u'*Error:* Sólo <@%s> o un administrador puede borrar el link <%s/%s>' % (url.created_by_id, settings['redirect_domain'], url.name)
+            return u'*Error:* Sólo <@%s> o un administrador puede borrar el link %s' % (url.created_by_id, get_short_link(url.name))
 
 
 @app.route('/<path:path>')
