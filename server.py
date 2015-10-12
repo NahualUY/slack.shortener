@@ -85,6 +85,9 @@ def execute_command():
             if not validators.url(parts[1]):
                 return u'*Error:* El segundo parámetro tiene que ser una URL'
 
+        if validators.url(parts[0]) or validators.url('http://%s' % parts[0]):
+            return u'El primer parámetro no tiene que ser una url, sólo la parte después de %s/' % settings['redirect_domain']
+
         if previous_url:
             return u'*Error*\nYa existe un link <%s/%s> creado por <@%s>. Apunta a <%s>. Sólo <@%s> o un administrador lo puede borrar usando `/url.del`' % (settings['redirect_domain'], parts[0], previous_url.created_by_id, previous_url.dest_url, previous_url.created_by_id)
 
