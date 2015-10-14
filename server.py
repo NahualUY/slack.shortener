@@ -30,7 +30,7 @@ def execute_command():
     if parts[0] == 'help':
         return (u'`/url`\n>Muestra todas las urls creadas\n\n'
                 u'`/url [url-corta] [url-real]`\n'
-                u'>Crea un link desde {url_corta_url} a url_real y *avisa en el canal que el link fué creado*\n>\n'
+                u'>Crea un link desde {url_corta_url} a url-real y *avisa en el canal que el link fué creado*\n>\n'
                 u'>*Ejemplo*: `/url facebook https://www.facebook.com/groups/NahualUY201508` Hace que {facebook_url} redirija a https://www.facebook.com/groups/NahualUY201508\n\n'
                 u'`/url [url-corta]`\n'
                 u'>Muestra a qué url apunta {url_corta_url} y quién lo creó\n>\n'
